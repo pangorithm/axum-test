@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+entity = { path = "src/entity" }
+migration = { path = "migration" } # depends on your needs
+
 axum = "0.8.1"
 dotenv = "0.15.0"
 log = "0.4.25"
