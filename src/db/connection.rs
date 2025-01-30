@@ -1,7 +1,8 @@
 use sea_orm::{ConnectOptions, Database, DatabaseConnection, DbErr};
-use std::{env, time::Duration};
+use std::env;
+use tokio::time::{sleep, Duration};
 
-pub async fn establish_connection() -> Result<DatabaseConnection, DbErr> {
+pub async fn establish_connection() -> DatabaseConnection {
     let database_url =
         env::var("POSTGRES_DATABASE_URL").expect("POSTGRES_DATABASE_URL must be set");
     let mut opt = ConnectOptions::new(database_url);
@@ -15,9 +16,21 @@ pub async fn establish_connection() -> Result<DatabaseConnection, DbErr> {
         .sqlx_logging_level(log::LevelFilter::Info)
         .set_schema_search_path("public"); // Setting default PostgreSQL schema
 
-    let db: Result<DatabaseConnection, DbErr> = Database::connect(opt).await;
-
-    db
+    loop {
+        match Database::connect(opt.clone()).await {
+            Ok(db) => {
+                println!("Connected to database");
+                test_connection(db.clone()).await;
+                return db;
+            }
+            Err(e) => {
+                eprintln!("Failed to connect to database: {:?}", e);
+                println!("wait 10 seconds...");
+                sleep(Duration::from_secs(10)).await;
+                println!("retry establish connection...");
+            }
+        }
+    }
 }
 
 pub async fn test_connection(db: DatabaseConnection) {
